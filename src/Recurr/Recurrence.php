@@ -24,7 +24,9 @@ class Recurrence
     /** @var \DateTime */
     protected $end;
 
-    public function __construct(\DateTime $start = null, \DateTime $end = null)
+    protected $repeat_count;
+
+    public function __construct(\DateTime $start = null, \DateTime $end = null, $repeat_count)
     {
         if ($start instanceof \DateTime) {
             $this->setStart($start);
@@ -33,6 +35,8 @@ class Recurrence
         if ($end instanceof \DateTime) {
             $this->setEnd($end);
         }
+
+        $this->repeat_count = $repeat_count;
     }
 
     /**
@@ -65,5 +69,10 @@ class Recurrence
     public function setEnd($end)
     {
         $this->end = $end;
+    }
+
+    public function getCount()
+    {
+        return $this->repeat_count;
     }
 }

@@ -89,7 +89,7 @@ class ArrayTransformer
      * @return RecurrenceCollection
      * @throws MissingData
      */
-    public function transform($rule, $virtualLimit = null, ConstraintInterface $constraint = null)
+    public function transform($rule, $virtualLimit = null, ConstraintInterface $constraint = null, $customStart = '', $customEnd = '')
     {
         if (null === $rule) {
             throw new MissingData('Rule has not been set');
@@ -224,10 +224,81 @@ class ArrayTransformer
         $total    = 1;
         $count    = $maxCount;
         $continue = true;
-        while ($continue) {
+		$repeat_count = 0;
+		while ($continue) {
             $dtInfo = DateUtil::getDateInfo($dt);
 
-            $tmp         = DateUtil::getDaySet($rule, $dt, $dtInfo, $start);
+			if (($customStart != '') && ($dt->getTimestamp() - $customStart < 0)) {
+				switch ($freq) {
+					case Frequency::YEARLY:
+						$year += $rule->getInterval();
+						$month = $dt->format('n');
+						$day = $dt->format('j');
+						$dt->setDate($year, $month, 1);
+						break;
+					case Frequency::MONTHLY:
+						$month += $rule->getInterval();
+						if ($month > 12) {
+							$delta = floor($month / 12);
+							$mod = DateUtil::pymod($month, 12);
+							$month = $mod;
+							$year += $delta;
+							if ($month == 0) {
+								$month = 12;
+								--$year;
+							}
+						}
+						$dt->setDate($year, $month, 1);
+						break;
+					case Frequency::WEEKLY:
+						if ($weekStart > $dtInfo->dayOfWeek) {
+							$delta = ($dtInfo->dayOfWeek + 1 + (6 - $weekStart)) * -1 + $rule->getInterval() * 7;
+						} else {
+							$delta = ($dtInfo->dayOfWeek - $weekStart) * -1 + $rule->getInterval() * 7;
+						}
+
+						$dt->modify("+$delta day");
+						$year = $dt->format('Y');
+						$month = $dt->format('n');
+						$day = $dt->format('j');
+						break;
+					case Frequency::DAILY:
+						$dt->modify('+' . $rule->getInterval() . ' day');
+						$year = $dt->format('Y');
+						$month = $dt->format('n');
+						$day = $dt->format('j');
+						break;
+					case Frequency::HOURLY:
+						$dt->modify('+' . $rule->getInterval() . ' hours');
+						$year = $dt->format('Y');
+						$month = $dt->format('n');
+						$day = $dt->format('j');
+						$hour = $dt->format('G');
+						break;
+					case Frequency::MINUTELY:
+						$dt->modify('+' . $rule->getInterval() . ' minutes');
+						$year = $dt->format('Y');
+						$month = $dt->format('n');
+						$day = $dt->format('j');
+						$hour = $dt->format('G');
+						$minute = $dt->format('i');
+						break;
+					case Frequency::SECONDLY:
+						$dt->modify('+' . $rule->getInterval() . ' seconds');
+						$year = $dt->format('Y');
+						$month = $dt->format('n');
+						$day = $dt->format('j');
+						$hour = $dt->format('G');
+						$minute = $dt->format('i');
+						$second = $dt->format('s');
+						break;
+				}
+				++$repeat_count;
+				continue;
+			}
+			if (($customEnd != '') && ($customEnd - $dt->getTimestamp() < 0)) break;
+
+			$tmp         = DateUtil::getDaySet($rule, $dt, $dtInfo, $start);
             $daySet      = $tmp->set;
             $daySetStart = $tmp->start;
             $daySetEnd   = $tmp->end;
@@ -591,7 +662,9 @@ class ArrayTransformer
                             }
                         }
 
-                        $dates[] = clone $dtTmp;
+                        $dates[$repeat_count] = clone $dtTmp;
+
+						++$repeat_count;
 
                         if (null !== $count) {
                             --$count;
@@ -606,6 +679,7 @@ class ArrayTransformer
                             $continue = false;
                             break;
                         }
+
                     }
 
                     if (!$continue) {
@@ -687,11 +761,11 @@ class ArrayTransformer
 
         /** @var Recurrence[] $recurrences */
         $recurrences = array();
-        foreach ($dates as $start) {
+        foreach ($dates as $dates_key=>$start) {
             /** @var \DateTime $end */
             $end = clone $start;
 
-            $recurrences[] = new Recurrence($start, $end->add($durationInterval));
+            $recurrences[] = new Recurrence($start, $end->add($durationInterval), $dates_key);
         }
 
         $recurrences = $this->handleExclusions($rule->getExDates(), $recurrences);
