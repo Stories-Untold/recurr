@@ -90,7 +90,7 @@ class ArrayTransformer
      * @throws MissingData
      */
     public function transform($rule, $virtualLimit = null, ConstraintInterface $constraint = null, $customStart = '', $customEnd = '')
-    {
+    {echo 222;exit;
         if (null === $rule) {
             throw new MissingData('Rule has not been set');
         }
