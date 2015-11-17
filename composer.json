@@ -1,8 +1,8 @@
 {
-	"name": "simshaun/recurr",
+	"name": "stories-untold/recurr",
 	"description": "PHP library for working with recurrence rules",
 	"keywords": ["rrule", "recurrence", "recurring", "events", "dates"],
-	"homepage": "https://github.com/simshaun/recurr",
+	"homepage": "https://github.com/Stories-Untold/recurr",
 	"type": "library",
 	"license": "MIT",
 	"authors": [
